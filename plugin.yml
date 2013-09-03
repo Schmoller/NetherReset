@@ -1,0 +1,11 @@
+name: NetherReset
+author: Schmoller
+
+version: 1.0
+
+main: au.com.mineauz.NetherReset.NetherReset
+
+commands:
+  resetNether:
+    description: Resets the nether
+    
