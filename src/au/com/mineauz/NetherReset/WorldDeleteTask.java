@@ -29,10 +29,12 @@ public class WorldDeleteTask implements Task
 	@Override
 	public void run()
 	{
+		NetherReset.logger.info("Closing region files");
 		RegionFileCache.a();
 		
 		try
 		{
+			NetherReset.logger.info("Deleting world files");
 			delete(mRootFolder);
 			removeCraftWorld();
 			

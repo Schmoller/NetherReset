@@ -8,7 +8,9 @@ import net.minecraft.server.v1_6_R2.ServerNBTManager;
 import net.minecraft.server.v1_6_R2.WorldServer;
 import net.minecraft.server.v1_6_R2.WorldSettings;
 
+import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.event.world.WorldLoadEvent;
 
 public class WorldCreateTask implements Task
 {
@@ -24,9 +26,13 @@ public class WorldCreateTask implements Task
 	@Override
 	public void run()
 	{
+		NetherReset.logger.info("Re-creating the nether");
 		WorldServer newWorld = createNether(mServer.worlds.get(0), new Random().nextLong());
 		mServer.worlds.add(newWorld);
 		mServer.worldServer[1] = newWorld;
+		
+		NetherReset.logger.info("New nether in place.");
+		Bukkit.getPluginManager().callEvent(new WorldLoadEvent(newWorld.getWorld()));
 	}
 
 	private WorldServer createNether(WorldServer parent, long seed)
