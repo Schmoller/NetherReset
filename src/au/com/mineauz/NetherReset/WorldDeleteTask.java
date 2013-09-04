@@ -6,6 +6,7 @@ import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.util.Map;
 
+import net.minecraft.server.v1_6_R2.FileIOThread;
 import net.minecraft.server.v1_6_R2.RegionFileCache;
 
 import org.bukkit.Bukkit;
@@ -18,6 +19,7 @@ public class WorldDeleteTask implements Task
 	private File mRootFolder;
 	private World mWorld;
 	private boolean mSucceeded;
+	private int mAttempts = 0;
 	
 	public WorldDeleteTask(World world, String... exceptions)
 	{
@@ -29,8 +31,12 @@ public class WorldDeleteTask implements Task
 	@Override
 	public void run()
 	{
+		++mAttempts;
+		NetherReset.logger.info("Waiting...");
+		FileIOThread.a.a(); // waitForFinish
+		
 		NetherReset.logger.info("Closing region files");
-		RegionFileCache.a();
+		RegionFileCache.a(); // clearRegionFileReferences
 		
 		try
 		{
@@ -42,6 +48,9 @@ public class WorldDeleteTask implements Task
 		}
 		catch(Exception e)
 		{
+			if(canRetry())
+				NetherReset.logger.warning("An error occured during nether deletion. Some of the region files may have failed to close. This task will be retried. If you do not see this again, it is not a problem.");
+			
 			e.printStackTrace();
 			mSucceeded = false;
 		}
@@ -88,5 +97,11 @@ public class WorldDeleteTask implements Task
 		worlds = (Map<String, World>) field.get(Bukkit.getServer());
 		
 		worlds.remove(mWorld.getName());
+	}
+	
+	@Override
+	public boolean canRetry()
+	{
+		return mAttempts < 2;
 	}
 }

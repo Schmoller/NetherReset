@@ -8,4 +8,9 @@ main: au.com.mineauz.NetherReset.NetherReset
 commands:
   resetNether:
     description: Resets the nether
+    permission: resetNether.command
     
+    
+permissions:
+  resetNether.command:
+    default: op

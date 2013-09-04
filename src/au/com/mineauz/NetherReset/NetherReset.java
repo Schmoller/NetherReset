@@ -18,7 +18,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityTeleportEvent;
-import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -27,10 +26,12 @@ public class NetherReset extends JavaPlugin implements Listener
 	private boolean mNetherLockout = false;
 	
 	public static Logger logger;
+	public static NetherReset instance;
 	
 	@Override
 	public void onEnable()
 	{
+		instance = this;
 		logger = getLogger();
 	}
 	
@@ -71,7 +72,7 @@ public class NetherReset extends JavaPlugin implements Listener
 		for(Player player : nether.getPlayers())
 		{
 			player.teleport(spawnPoint);
-			player.sendMessage(ChatColor.RED + "[WARNING] " + ChatColor.WHITE + " The nether is being regenerated. You have been removed from the nether for your safety.");
+			player.sendMessage(ChatColor.RED + "[WARNING] " + ChatColor.WHITE + " You have been removed from the nether while it is regenerated.");
 		}
 		
 		
@@ -95,13 +96,15 @@ public class NetherReset extends JavaPlugin implements Listener
 			event.setCancelled(true);
 	}
 
-	@EventHandler
-	private void onNetherLoad(WorldLoadEvent event)
+
+	void onNetherLoad()
 	{
-		if(mNetherLockout && event.getWorld().getName().equals("world_nether"))
+		if(mNetherLockout)
 		{
 			mNetherLockout = false;
 			Bukkit.broadcastMessage(ChatColor.RED + "[Nether Reset] " + ChatColor.WHITE + "Nether regeneration is complete. Access to the nether is available again.");
 		}
 	}
+	
+	
 }

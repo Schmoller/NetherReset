@@ -33,6 +33,7 @@ public class WorldCreateTask implements Task
 		
 		NetherReset.logger.info("New nether in place.");
 		Bukkit.getPluginManager().callEvent(new WorldLoadEvent(newWorld.getWorld()));
+		NetherReset.instance.onNetherLoad();
 	}
 
 	private WorldServer createNether(WorldServer parent, long seed)
@@ -46,5 +47,11 @@ public class WorldCreateTask implements Task
 	public boolean wasSuccessful()
 	{
 		return true;
+	}
+	
+	@Override
+	public boolean canRetry()
+	{
+		return false;
 	}
 }
