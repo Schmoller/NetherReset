@@ -6,12 +6,17 @@ import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.util.Map;
 
+import net.minecraft.server.v1_6_R2.ChunkProviderServer;
+import net.minecraft.server.v1_6_R2.ChunkRegionLoader;
 import net.minecraft.server.v1_6_R2.FileIOThread;
+import net.minecraft.server.v1_6_R2.IChunkLoader;
 import net.minecraft.server.v1_6_R2.RegionFileCache;
+import net.minecraft.server.v1_6_R2.WorldServer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.craftbukkit.v1_6_R2.CraftServer;
+import org.bukkit.craftbukkit.v1_6_R2.CraftWorld;
 
 public class WorldDeleteTask implements Task
 {
@@ -32,27 +37,35 @@ public class WorldDeleteTask implements Task
 	public void run()
 	{
 		++mAttempts;
-		NetherReset.logger.info("Waiting...");
-		FileIOThread.a.a(); // waitForFinish
 		
-		NetherReset.logger.info("Closing region files");
-		RegionFileCache.a(); // clearRegionFileReferences
+		WorldServer nmsWorld = ((CraftWorld)mWorld).getHandle();
+		IChunkLoader loader = ReflectionHelper.getFieldValue(ChunkProviderServer.class, "e", nmsWorld.chunkProviderServer);
+		Object synchObject = ReflectionHelper.getFieldValue(ChunkRegionLoader.class, "c", loader);
 		
-		try
+		synchronized(synchObject)
 		{
-			NetherReset.logger.info("Deleting world files");
-			delete(mRootFolder);
-			removeCraftWorld();
+			//NetherReset.logger.info("Waiting...");
+			//FileIOThread.a.a(); // waitForFinish
 			
-			mSucceeded = true;
-		}
-		catch(Exception e)
-		{
-			if(canRetry())
-				NetherReset.logger.warning("An error occured during nether deletion. Some of the region files may have failed to close. This task will be retried. If you do not see this again, it is not a problem.");
+			NetherReset.logger.info("Closing region files");
+			RegionFileCache.a(); // clearRegionFileReferences
 			
-			e.printStackTrace();
-			mSucceeded = false;
+			try
+			{
+				NetherReset.logger.info("Deleting world files");
+				delete(mRootFolder);
+				removeCraftWorld();
+				
+				mSucceeded = true;
+			}
+			catch(Exception e)
+			{
+				if(canRetry())
+					NetherReset.logger.warning("An error occured during nether deletion. Some of the region files may have failed to close. This task will be retried. If you do not see this again, it is not a problem.");
+				
+				e.printStackTrace();
+				mSucceeded = false;
+			}
 		}
 	}
 	
