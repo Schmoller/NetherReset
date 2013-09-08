@@ -1,24 +1,25 @@
 package au.com.mineauz.NetherReset;
 
+import java.lang.ref.WeakReference;
+import java.util.Random;
 import java.util.logging.Logger;
 
-import net.minecraft.server.v1_6_R2.MinecraftServer;
-import net.minecraft.server.v1_6_R2.WorldServer;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.WorldCreator;
+import org.bukkit.World.Environment;
+import org.bukkit.WorldType;
 import org.bukkit.block.BlockFace;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.craftbukkit.v1_6_R2.CraftServer;
-import org.bukkit.craftbukkit.v1_6_R2.CraftWorld;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityPortalEnterEvent;
 import org.bukkit.event.entity.EntityTeleportEvent;
-import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class NetherReset extends JavaPlugin implements Listener
@@ -28,21 +29,56 @@ public class NetherReset extends JavaPlugin implements Listener
 	public static Logger logger;
 	public static NetherReset instance;
 	
+	private WeakReference<World> mNether;
+	
 	@Override
 	public void onEnable()
 	{
 		instance = this;
 		logger = getLogger();
+		
+		if(getServer().getAllowNether())
+		{
+			getLogger().severe("Nether world needs to be disabled for this plugin to work");
+			instance = null;
+			return;
+		}
+		
+		Bukkit.getPluginManager().registerEvents(this, this);
+		
+		createNewNether();
+	}
+	
+	void createNewNether()
+	{
+		WorldCreator world = new WorldCreator("world_nether");
+		world.seed(new Random().nextLong());
+		world.environment(Environment.NETHER);
+		world.generateStructures(true);
+		world.type(WorldType.NORMAL);
+		
+		mNether = new WeakReference<World>(Bukkit.createWorld(world));
 	}
 	
 	@Override
 	public boolean onCommand( CommandSender sender, Command command, String label, String[] args )
 	{
+		if(instance == null)
+			return false;
+		
 		if(command.getName().equals("resetNether"))
 		{
 			beginNetherReset();
 			
 			return true;
+		}
+		else if(command.getName().equals("tpn"))
+		{
+			if(sender instanceof Player && !mNether.isEnqueued())
+			{
+				((Player)sender).teleport(mNether.get().getSpawnLocation());
+			}
+				
 		}
 		
 		return false;
@@ -75,17 +111,13 @@ public class NetherReset extends JavaPlugin implements Listener
 			player.sendMessage(ChatColor.RED + "[WARNING] " + ChatColor.WHITE + " You have been removed from the nether while it is regenerated.");
 		}
 		
+		if(!Bukkit.unloadWorld(nether, false))
+		{
+			logger.severe("couldnt unload nether");
+			return;
+		}
 		
-		Bukkit.getPluginManager().callEvent(new WorldUnloadEvent(nether));
-		
-		CraftWorld world = (CraftWorld)nether;
-		MinecraftServer server = ((CraftServer)getServer()).getServer();
-		WorldServer worldServer = world.getHandle();
-	
-		server.worlds.remove(server.worlds.indexOf(worldServer));
-		server.worldServer[1] = null;
-		
-		TaskChain chain = new TaskChain(new WorldDeleteTask(nether, "uid.dat"), new WorldCreateTask(worldServer, server));
+		TaskChain chain = new TaskChain(new WorldDeleteTask(nether), new WorldCreateTask());
 		Bukkit.getScheduler().runTaskLater(this, chain, 20L);
 	}
 	
@@ -94,6 +126,16 @@ public class NetherReset extends JavaPlugin implements Listener
 	{
 		if(mNetherLockout && event.getTo().getWorld().getName().equals("world_nether"))
 			event.setCancelled(true);
+	}
+	
+	@EventHandler(priority=EventPriority.HIGHEST)
+	private void onEntityPortalEnter(EntityPortalEnterEvent event)
+	{
+		logger.info("Portal event");
+		if(event.getLocation().getWorld().equals(Bukkit.getWorlds().get(0)))
+		{
+			event.getEntity().teleport(mNether.get().getSpawnLocation());
+		}
 	}
 
 

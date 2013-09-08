@@ -5,11 +5,13 @@ version: 1.0
 
 main: au.com.mineauz.NetherReset.NetherReset
 
+load: postworld
+
 commands:
   resetNether:
     description: Resets the nether
     permission: resetNether.command
-    
+  tpn:
     
 permissions:
   resetNether.command:
