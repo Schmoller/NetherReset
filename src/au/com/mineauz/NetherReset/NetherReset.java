@@ -1,16 +1,19 @@
 package au.com.mineauz.NetherReset;
 
 import java.lang.ref.WeakReference;
+import java.util.HashSet;
 import java.util.Random;
 import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.World.Environment;
 import org.bukkit.WorldType;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -93,6 +96,11 @@ public class NetherReset extends JavaPlugin implements Listener
 		{
 			if(sender instanceof Player && !mNether.isEnqueued())
 			{
+				Player p = (Player)sender;
+				HashSet<Byte> blocks = new HashSet<Byte>();
+				blocks.add((byte)0);
+				Block target = p.getTargetBlock(blocks, 20);
+				target.setType(Material.PORTAL);
 				((Player)sender).teleport(mNether.get().getSpawnLocation());
 			}
 				

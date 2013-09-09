@@ -49,10 +49,16 @@ public class Portal
 			coords = new Location(NetherReset.getNether(), mBaseBlock.getX() / 8, mBaseBlock.getY(), mBaseBlock.getZ() / 8);
 		
 		mLinked = PortalHelper.createPortal(coords, mNorthSouth);
+		mLinked.setLinkedPortal(this);
 		
 		NetherReset.getPortalManager().registerPortal(mLinked);
 		
 		return mLinked;
+	}
+	
+	private void setLinkedPortal(Portal portal)
+	{
+		mLinked = portal;
 	}
 	
 	public Location getSpawnLocation(Location source)

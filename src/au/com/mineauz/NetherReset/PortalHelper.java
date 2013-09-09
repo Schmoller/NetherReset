@@ -145,27 +145,43 @@ public class PortalHelper
 		// Make the actual portal
 		if(ns)
 		{
+			// Build the frame first
 			for(int z = location.getBlockZ() - 1; z <= location.getBlockZ() + 2; ++z)
 			{
 				for(int y = location.getBlockY() - 1; y <= location.getBlockY() + 3; ++y)
 				{
 					if(z == location.getBlockZ() - 1 || z == location.getBlockZ() + 2 || y == location.getBlockY() - 1 || y == location.getBlockY() + 3)
 						location.getWorld().getBlockAt(location.getBlockX(), y, z).setType(Material.OBSIDIAN);
-					else
-						location.getWorld().getBlockAt(location.getBlockX(), y, z).setTypeId(Material.PORTAL.getId(), false);
+				}
+			}
+			
+			// Build the portal
+			for(int z = location.getBlockZ(); z <= location.getBlockZ() + 1; ++z)
+			{
+				for(int y = location.getBlockY(); y <= location.getBlockY() + 2; ++y)
+				{
+					location.getWorld().getBlockAt(location.getBlockX(), y, z).setTypeId(Material.PORTAL.getId(), false);
 				}
 			}
 		}
 		else
 		{
+			// Build the frame first
 			for(int x = location.getBlockX() - 1; x <= location.getBlockX() + 2; ++x)
 			{
 				for(int y = location.getBlockY() - 1; y <= location.getBlockY() + 3; ++y)
 				{
 					if(x == location.getBlockX() - 1 || x == location.getBlockX() + 2 || y == location.getBlockY() - 1 || y == location.getBlockY() + 3)
 						location.getWorld().getBlockAt(x, y, location.getBlockZ()).setType(Material.OBSIDIAN);
-					else
-						location.getWorld().getBlockAt(x, y, location.getBlockZ()).setTypeId(Material.PORTAL.getId(), false);
+				}
+			}
+			
+			// Build the portal
+			for(int x = location.getBlockX(); x <= location.getBlockX() + 1; ++x)
+			{
+				for(int y = location.getBlockY(); y <= location.getBlockY() + 2; ++y)
+				{
+					location.getWorld().getBlockAt(x, y, location.getBlockZ()).setTypeId(Material.PORTAL.getId(), false);
 				}
 			}
 		}

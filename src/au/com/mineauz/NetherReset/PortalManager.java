@@ -4,12 +4,22 @@ import java.io.IOException;
 import java.util.HashMap;
 
 import org.apache.commons.lang.Validate;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Entity;
+
+import au.com.mineauz.NetherReset.utilities.AgeingMap;
 
 public class PortalManager
 {
 	private HashMap<Block, Portal> mPortals = new HashMap<Block, Portal>();
+	private AgeingMap<Entity, Portal> mPortalBlackList;
+	
+	public PortalManager()
+	{
+		mPortalBlackList = new AgeingMap<Entity, Portal>(1000);
+	}
 	
 	public void initialize() throws IOException
 	{
@@ -36,5 +46,22 @@ public class PortalManager
 	public void registerPortal(Portal portal)
 	{
 		mPortals.put(portal.getBlock(), portal);
+	}
+	
+	public boolean canUsePortal(Entity entity, Portal portal)
+	{
+		Portal blacklisted = mPortalBlackList.get(entity);
+		return blacklisted != portal;
+	}
+	
+	/**
+	 * Force uses a portal, check with canUsePortal if you want to know
+	 */
+	public void usePortal(Entity entity, Portal portal)
+	{
+		Portal other = portal.getOrSpawnLinkedPortal();
+		Location loc = other.getSpawnLocation(entity.getLocation());
+		entity.teleport(loc);
+		mPortalBlackList.put(entity, portal);
 	}
 }
