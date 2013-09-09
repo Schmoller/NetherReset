@@ -31,6 +31,20 @@ public class NetherReset extends JavaPlugin implements Listener
 	
 	private WeakReference<World> mNether;
 	
+	private PortalManager mPortals;
+	
+	public static PortalManager getPortalManager()
+	{
+		return instance.mPortals;
+	}
+	
+	public static World getNether()
+	{
+		if(!instance.mNether.isEnqueued())
+			return instance.mNether.get();
+		return null;
+	}
+	
 	@Override
 	public void onEnable()
 	{
@@ -44,7 +58,10 @@ public class NetherReset extends JavaPlugin implements Listener
 			return;
 		}
 		
+		mPortals = new PortalManager();
+		
 		Bukkit.getPluginManager().registerEvents(this, this);
+		Bukkit.getPluginManager().registerEvents(new PortalListener(), this);
 		
 		createNewNether();
 	}
@@ -131,12 +148,13 @@ public class NetherReset extends JavaPlugin implements Listener
 	@EventHandler(priority=EventPriority.HIGHEST)
 	private void onEntityPortalEnter(EntityPortalEnterEvent event)
 	{
-		logger.info("Portal event");
-		if(event.getLocation().getWorld().equals(Bukkit.getWorlds().get(0)))
-		{
-			event.getEntity().teleport(mNether.get().getSpawnLocation());
-		}
+//		logger.info("Portal event");
+//		if(event.getLocation().getWorld().equals(Bukkit.getWorlds().get(0)))
+//		{
+//			event.getEntity().teleport(mNether.get().getSpawnLocation());
+//		}
 	}
+	
 
 
 	void onNetherLoad()
