@@ -1,5 +1,7 @@
 package au.com.mineauz.NetherReset;
 
+import java.io.File;
+import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.HashSet;
 import java.util.Random;
@@ -61,12 +63,23 @@ public class NetherReset extends JavaPlugin implements Listener
 			return;
 		}
 		
+		createNewNether();
+		
 		mPortals = new PortalManager();
+		try
+		{
+			mPortals.initialize(new File(getDataFolder(), "portals.yml"));
+		}
+		catch ( IOException e )
+		{
+			e.printStackTrace();
+			
+		}
 		
 		Bukkit.getPluginManager().registerEvents(this, this);
 		Bukkit.getPluginManager().registerEvents(new PortalListener(), this);
 		
-		createNewNether();
+		
 	}
 	
 	void createNewNether()
@@ -97,11 +110,14 @@ public class NetherReset extends JavaPlugin implements Listener
 			if(sender instanceof Player && !mNether.isEnqueued())
 			{
 				Player p = (Player)sender;
-				HashSet<Byte> blocks = new HashSet<Byte>();
-				blocks.add((byte)0);
-				Block target = p.getTargetBlock(blocks, 20);
-				target.setType(Material.PORTAL);
-				((Player)sender).teleport(mNether.get().getSpawnLocation());
+				Portal test = new Portal(p.getLocation().getBlock());
+				PortalHelper.applyPortal(test);
+				
+//				HashSet<Byte> blocks = new HashSet<Byte>();
+//				blocks.add((byte)0);
+//				Block target = p.getTargetBlock(blocks, 20);
+//				target.setType(Material.PORTAL);
+//				((Player)sender).teleport(mNether.get().getSpawnLocation());
 			}
 				
 		}
@@ -142,6 +158,7 @@ public class NetherReset extends JavaPlugin implements Listener
 			return;
 		}
 		
+		mPortals.clearPortals();
 		TaskChain chain = new TaskChain(new WorldDeleteTask(nether), new WorldCreateTask());
 		Bukkit.getScheduler().runTaskLater(this, chain, 20L);
 	}

@@ -1,5 +1,6 @@
 package au.com.mineauz.NetherReset;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -38,7 +39,7 @@ public class PortalHelper
 	{
 		if(ns)
 		{
-			for(int z = location.getBlockZ(); z <= location.getBlockZ() + 1; ++z)
+			for(int z = location.getBlockZ()-1; z <= location.getBlockZ() + 2; ++z)
 			{
 				for(int y = location.getBlockY(); y <= location.getBlockY() + 2; ++y)
 				{
@@ -52,7 +53,7 @@ public class PortalHelper
 		}
 		else
 		{
-			for(int x = location.getBlockX(); x <= location.getBlockX() + 1; ++x)
+			for(int x = location.getBlockX() - 1; x <= location.getBlockX() + 2; ++x)
 			{
 				for(int y = location.getBlockY(); y <= location.getBlockY() + 2; ++y)
 				{
@@ -65,8 +66,36 @@ public class PortalHelper
 			}
 		}
 		
+		if(location.getBlock().getRelative(BlockFace.DOWN).isEmpty())
+			return false;
+		
 		return true;
 	}
+	
+	public static void applyPortal(Portal portal)
+	{
+		if(portal.isNorthSouth())
+		{
+			for(int z = portal.getBlock().getZ() - 1; z <= portal.getBlock().getZ(); ++z)
+			{
+				for(int y = portal.getBlock().getY(); y <= portal.getBlock().getY() + 2; ++y)
+				{
+					portal.getBlock().getWorld().getBlockAt(portal.getBlock().getX(), y, z).setTypeId(Material.PORTAL.getId(), false);
+				}
+			}
+		}
+		else
+		{
+			for(int x = portal.getBlock().getX(); x <= portal.getBlock().getX() + 1; ++x)
+			{
+				for(int y = portal.getBlock().getY(); y <= portal.getBlock().getY() + 2; ++y)
+				{
+					portal.getBlock().getWorld().getBlockAt(x, y, portal.getBlock().getZ()).setTypeId(Material.PORTAL.getId(), false);
+				}
+			}
+		}
+	}
+	
 	public static Portal createPortal(Location location, boolean ns)
 	{
 		// Find an empty position to put it.
@@ -74,118 +103,175 @@ public class PortalHelper
 		// If this is not met, try going up. NOTE: must not go up above 100 but only go up to 30 above the target position
 		// If going up didnt succeede, try offsetting the location 
 		
-		boolean canPlace = false;
-		outer: for(int i = 0; i < 60; ++i)
-		{
-			// First we will start at the exact location, then we step along the positive dir, then jump to the negative dir
-			int offset = (i <= 30 ? i : 30 - (i - 30));
-			
-			for(int y = location.getBlockY(); y < location.getBlockY() + 30 && y < 100; ++y)
-			{
-				Location loc = new Location(location.getWorld(), location.getX() + (ns ? 0 : offset), y, location.getZ() + (ns ? offset : 0));
-				if(canPlacePortal(loc, ns))
-				{
-					canPlace = true;
-					location = loc;
-					break outer;
-				}
-			}
-		}
+		Location best = null;
+		double bestDist = Double.MAX_VALUE;
+		Location bestAnti = null;
+		double bestAntiDist = Double.MAX_VALUE;
 		
-		if(!canPlace)
+		for(int x = location.getBlockX() - 16; x < location.getBlockX() + 16; ++x)
 		{
-			// This time we will go along the other axis
-			outer2: for(int i = 0; i < 60; ++i)
+			for(int z = location.getBlockZ() - 16; z < location.getBlockZ() + 16; ++z)
 			{
-				// First we will start at the exact location, then we step along the positive dir, then jump to the negative dir
-				int offset = (i <= 30 ? i : 30 - (i - 30));
-				
-				for(int y = location.getBlockY(); y < location.getBlockY() + 30 && y < 100; ++y)
+				for(int y = 5; y < 110; ++y)
 				{
-					Location loc = new Location(location.getWorld(), location.getX() + (ns ? offset : 0), y, location.getZ() + (ns ? 0 : offset));
-					if(canPlacePortal(loc, ns))
+					Location loc = new Location(location.getWorld(), x, y, z);
+					double dist = loc.distanceSquared(location); 
+					
+					if(dist < bestDist)
 					{
-						canPlace = true;
-						location = loc;
-						break outer2;
+						if(canPlacePortal(loc, ns))
+						{
+							best = loc;
+							bestDist = dist;
+						}
+						else 
+						{
+							if(dist < bestAntiDist)
+							{
+								if(canPlacePortal(loc, !ns))
+								{
+									bestAnti = loc;
+									bestAntiDist = dist;
+								}
+							}
+						}
 					}
 				}
 			}
 		}
+
+		boolean force = false;
 		
-		if(!canPlace)
+		if(best != null)
+			location = best;
+		else if(bestAnti != null)
 		{
-			// Generate a void around the portal
-			for(int y = location.getBlockY(); y <= location.getBlockY() + 6; ++y)
+			location = bestAnti;
+			ns = !ns;
+		}
+		else
+			force = true;
+		
+		final Location fLocation = location;
+		final boolean fForce = force;
+		final boolean fNS = ns;
+		
+		Bukkit.getScheduler().runTaskLater(NetherReset.instance, new Runnable()
+		{
+			@Override
+			public void run()
 			{
-				if(ns)
+				if(fForce)
 				{
-					for(int x = location.getBlockX() - 2; x <= location.getBlockX() + 2; ++x)
+					// Generate a void around the portal
+					for(int y = fLocation.getBlockY(); y <= fLocation.getBlockY() + 6; ++y)
 					{
-						for(int z = location.getBlockZ() - 3; z <= location.getBlockZ() + 4; ++z)
+						if(fNS)
 						{
-							location.getWorld().getBlockAt(x, y, z).setTypeId(0, false);
+							for(int x = fLocation.getBlockX() - 2; x <= fLocation.getBlockX() + 2; ++x)
+							{
+								for(int z = fLocation.getBlockZ() - 3; z <= fLocation.getBlockZ() + 4; ++z)
+								{
+									fLocation.getWorld().getBlockAt(x, y, z).setTypeId(0, false);
+								}
+							}
 						}
+						else
+						{
+							for(int x = fLocation.getBlockX() - 3; x <= fLocation.getBlockX() + 4; ++x)
+							{
+								for(int z = fLocation.getBlockZ() - 2; z <= fLocation.getBlockZ() + 2; ++z)
+								{
+									fLocation.getWorld().getBlockAt(x, y, z).setTypeId(0, false);
+								}
+							}
+						}
+					}
+					
+				}
+				
+				// Make the actual portal
+				if(fNS)
+				{
+					int c = 0;
+
+					// Build the frame first
+					boolean retry = true;
+					// Found a case where frame doesnt fully generate.
+					// Heres what i know:
+					// setTypeId works, completly in every case
+					// but it doesnt at the same time. I find that there are two instances of the chunk, one that setType uses, and one that getType uses.
+					// Somehow I dont think this is intensional, but that is how it is.
+					// For the ones that work, the instances are the same.
+
+					while(retry)
+					{
+						retry = false;
+						for(int z = fLocation.getBlockZ() - 2; z <= fLocation.getBlockZ() + 1; ++z)
+						{
+							for(int y = fLocation.getBlockY() - 1; y <= fLocation.getBlockY() + 3; ++y)
+							{
+								if(z == fLocation.getBlockZ() - 2 || z == fLocation.getBlockZ() + 1 || y == fLocation.getBlockY() - 1 || y == fLocation.getBlockY() + 3)
+								{
+									Block b = fLocation.getWorld().getBlockAt(fLocation.getBlockX(), y, z);
+									b.setType(Material.OBSIDIAN);
+									
+									if(b.getType() != Material.OBSIDIAN)
+										retry = true;
+									++c;
+								}
+							}
+						}
+					}
+					NetherReset.logger.info("blocks " + c);
+					
+					Block base = fLocation.getBlock().getRelative(BlockFace.DOWN);
+					
+					if(fForce)
+					{
+						base.getRelative(BlockFace.WEST).setType(Material.OBSIDIAN);
+						base.getRelative(BlockFace.EAST).setType(Material.OBSIDIAN);
+						base.getRelative(BlockFace.WEST).getRelative(BlockFace.NORTH).setType(Material.OBSIDIAN);
+						base.getRelative(BlockFace.EAST).getRelative(BlockFace.NORTH).setType(Material.OBSIDIAN);
 					}
 				}
 				else
 				{
-					for(int x = location.getBlockX() - 3; x <= location.getBlockX() + 4; ++x)
+					boolean retry = true;
+					while(retry)
 					{
-						for(int z = location.getBlockZ() - 2; z <= location.getBlockZ() + 2; ++z)
+						retry = false;
+						// Build the frame first
+						for(int x = fLocation.getBlockX() - 1; x <= fLocation.getBlockX() + 2; ++x)
 						{
-							location.getWorld().getBlockAt(x, y, z).setTypeId(0, false);
+							for(int y = fLocation.getBlockY() - 1; y <= fLocation.getBlockY() + 3; ++y)
+							{
+								if(x == fLocation.getBlockX() - 1 || x == fLocation.getBlockX() + 2 || y == fLocation.getBlockY() - 1 || y == fLocation.getBlockY() + 3)
+								{
+									Block b = fLocation.getWorld().getBlockAt(x, y, fLocation.getBlockZ());
+									b.setType(Material.OBSIDIAN);
+									
+									if(b.getType() != Material.OBSIDIAN)
+										retry = true;
+								}
+							}
 						}
+					}
+					
+					Block base = fLocation.getBlock().getRelative(BlockFace.DOWN);
+					
+					if(fForce)
+					{
+						base.getRelative(BlockFace.SOUTH).setType(Material.OBSIDIAN);
+						base.getRelative(BlockFace.NORTH).setType(Material.OBSIDIAN);
+						base.getRelative(BlockFace.SOUTH).getRelative(BlockFace.EAST).setType(Material.OBSIDIAN);
+						base.getRelative(BlockFace.NORTH).getRelative(BlockFace.EAST).setType(Material.OBSIDIAN);
 					}
 				}
 			}
-			
-		}
+		}, 2L);
 		
-		// Make the actual portal
-		if(ns)
-		{
-			// Build the frame first
-			for(int z = location.getBlockZ() - 1; z <= location.getBlockZ() + 2; ++z)
-			{
-				for(int y = location.getBlockY() - 1; y <= location.getBlockY() + 3; ++y)
-				{
-					if(z == location.getBlockZ() - 1 || z == location.getBlockZ() + 2 || y == location.getBlockY() - 1 || y == location.getBlockY() + 3)
-						location.getWorld().getBlockAt(location.getBlockX(), y, z).setType(Material.OBSIDIAN);
-				}
-			}
-			
-			// Build the portal
-			for(int z = location.getBlockZ(); z <= location.getBlockZ() + 1; ++z)
-			{
-				for(int y = location.getBlockY(); y <= location.getBlockY() + 2; ++y)
-				{
-					location.getWorld().getBlockAt(location.getBlockX(), y, z).setTypeId(Material.PORTAL.getId(), false);
-				}
-			}
-		}
-		else
-		{
-			// Build the frame first
-			for(int x = location.getBlockX() - 1; x <= location.getBlockX() + 2; ++x)
-			{
-				for(int y = location.getBlockY() - 1; y <= location.getBlockY() + 3; ++y)
-				{
-					if(x == location.getBlockX() - 1 || x == location.getBlockX() + 2 || y == location.getBlockY() - 1 || y == location.getBlockY() + 3)
-						location.getWorld().getBlockAt(x, y, location.getBlockZ()).setType(Material.OBSIDIAN);
-				}
-			}
-			
-			// Build the portal
-			for(int x = location.getBlockX(); x <= location.getBlockX() + 1; ++x)
-			{
-				for(int y = location.getBlockY(); y <= location.getBlockY() + 2; ++y)
-				{
-					location.getWorld().getBlockAt(x, y, location.getBlockZ()).setTypeId(Material.PORTAL.getId(), false);
-				}
-			}
-		}
 		
-		return new Portal(location.getBlock());
+		return new Portal(location.getBlock(), ns);
 	}
 }

@@ -10,7 +10,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityPortalEnterEvent;
-import org.bukkit.event.entity.EntityPortalExitEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -30,7 +29,6 @@ public class PortalListener implements Listener
 		Portal portal = NetherReset.getPortalManager().getPortal(event.getLocation().getBlock());
 		mInPortal.put(event.getEntity(), portal);
 		
-		System.out.println(event.getEntity() + " entered the portal");
 		if(!NetherReset.getPortalManager().canUsePortal(event.getEntity(), portal))
 			return;
 		
@@ -42,12 +40,6 @@ public class PortalListener implements Listener
 	}
 	
 	@EventHandler(ignoreCancelled = true)
-	private void test(EntityPortalExitEvent event)
-	{
-		System.out.println(event.getEntity() + " exited the portal");
-	}
-	
-	@EventHandler(ignoreCancelled = true)
 	private void onExitPortal(PlayerMoveEvent event)
 	{
 		if(!mInPortal.containsKey(event.getPlayer()))
@@ -56,7 +48,6 @@ public class PortalListener implements Listener
 		Block block = event.getPlayer().getLocation().getBlock();
 		if(block.getType() != Material.PORTAL)
 		{
-			System.out.println(event.getPlayer().getName() + " left the portal");
 			mInPortal.remove(event.getPlayer());
 			BukkitTask task = mWaiting.get(event.getPlayer());
 			if(task != null)
