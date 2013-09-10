@@ -136,7 +136,7 @@ public class PortalManager
 	/**
 	 * Force uses a portal, check with canUsePortal if you want to know
 	 */
-	public void usePortal(Entity entity, Portal portal)
+	public void usePortal(final Entity entity, final Portal portal)
 	{
 		final Portal other = portal.getOrSpawnLinkedPortal();
 		
@@ -149,6 +149,17 @@ public class PortalManager
 			}
 		}, 2L);
 		
+		Bukkit.getScheduler().runTaskLater(NetherReset.instance, new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				Location loc = other.getSpawnLocation(entity.getLocation());
+				entity.teleport(loc);
+				
+				mPortalBlackList.put(entity, portal);
+			}
+		}, 3L);
 		
 		Location loc = other.getSpawnLocation(entity.getLocation());
 		entity.teleport(loc);

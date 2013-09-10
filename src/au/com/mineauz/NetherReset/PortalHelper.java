@@ -3,6 +3,7 @@ package au.com.mineauz.NetherReset;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World.Environment;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
@@ -96,6 +97,101 @@ public class PortalHelper
 		}
 	}
 	
+	private static void setIfNotSolid(Block block, Material mat)
+	{
+		if(!block.getType().isSolid())
+			block.setType(mat);
+	}
+	
+	private static void internalCreatePortal(Location location, boolean ns, boolean force)
+	{
+		if(force)
+		{
+			// Generate a void around the portal
+			for(int y = location.getBlockY(); y <= location.getBlockY() + 4; ++y)
+			{
+				if(ns)
+				{
+					for(int x = location.getBlockX() - 2; x <= location.getBlockX() + 2; ++x)
+					{
+						for(int z = location.getBlockZ() - 3; z <= location.getBlockZ() + 2; ++z)
+						{
+							location.getWorld().getBlockAt(x, y, z).setTypeId(0, false);
+						}
+					}
+				}
+				else
+				{
+					for(int x = location.getBlockX() - 2; x <= location.getBlockX() + 3; ++x)
+					{
+						for(int z = location.getBlockZ() - 2; z <= location.getBlockZ() + 2; ++z)
+						{
+							location.getWorld().getBlockAt(x, y, z).setTypeId(0, false);
+						}
+					}
+				}
+			}
+			
+		}
+		
+		// Make the actual portal
+		if(ns)
+		{
+			int c = 0;
+
+			// Build the frame first
+			// Found a case where frame doesnt fully generate.
+			// Heres what i know:
+			// setTypeId works, completly in every case
+			// but it doesnt at the same time. I find that there are two instances of the chunk, one that setType uses, and one that getType uses.
+			// Somehow I dont think this is intensional, but that is how it is.
+			// For the ones that work, the instances are the same.
+
+			for(int z = location.getBlockZ() - 2; z <= location.getBlockZ() + 1; ++z)
+			{
+				for(int y = location.getBlockY() - 1; y <= location.getBlockY() + 3; ++y)
+				{
+					if(z == location.getBlockZ() - 2 || z == location.getBlockZ() + 1 || y == location.getBlockY() - 1 || y == location.getBlockY() + 3)
+					{
+						Block b = location.getWorld().getBlockAt(location.getBlockX(), y, z);
+						b.setType(Material.OBSIDIAN);
+						++c;
+					}
+				}
+			}
+			NetherReset.logger.info("blocks " + c);
+			
+			Block base = location.getBlock().getRelative(BlockFace.DOWN);
+			
+			setIfNotSolid(base.getRelative(BlockFace.WEST),Material.OBSIDIAN);
+			setIfNotSolid(base.getRelative(BlockFace.EAST),Material.OBSIDIAN);
+			setIfNotSolid(base.getRelative(BlockFace.WEST).getRelative(BlockFace.NORTH),Material.OBSIDIAN);
+			setIfNotSolid(base.getRelative(BlockFace.EAST).getRelative(BlockFace.NORTH),Material.OBSIDIAN);
+		}
+		else
+		{
+			// Build the frame first
+			for(int x = location.getBlockX() - 1; x <= location.getBlockX() + 2; ++x)
+			{
+				for(int y = location.getBlockY() - 1; y <= location.getBlockY() + 3; ++y)
+				{
+					if(x == location.getBlockX() - 1 || x == location.getBlockX() + 2 || y == location.getBlockY() - 1 || y == location.getBlockY() + 3)
+					{
+						Block b = location.getWorld().getBlockAt(x, y, location.getBlockZ());
+						b.setType(Material.OBSIDIAN);
+					}
+				}
+			}
+			
+			Block base = location.getBlock().getRelative(BlockFace.DOWN);
+			
+			setIfNotSolid(base.getRelative(BlockFace.SOUTH),Material.OBSIDIAN);
+			setIfNotSolid(base.getRelative(BlockFace.NORTH),Material.OBSIDIAN);
+			setIfNotSolid(base.getRelative(BlockFace.SOUTH).getRelative(BlockFace.EAST),Material.OBSIDIAN);
+			setIfNotSolid(base.getRelative(BlockFace.NORTH).getRelative(BlockFace.EAST),Material.OBSIDIAN);
+		}
+	}
+	
 	public static Portal createPortal(Location location, boolean ns)
 	{
 		// Find an empty position to put it.
@@ -108,11 +204,13 @@ public class PortalHelper
 		Location bestAnti = null;
 		double bestAntiDist = Double.MAX_VALUE;
 		
+		int maxY = (location.getWorld().getEnvironment() == Environment.NORMAL ? 240 : 110);
+		
 		for(int x = location.getBlockX() - 16; x < location.getBlockX() + 16; ++x)
 		{
 			for(int z = location.getBlockZ() - 16; z < location.getBlockZ() + 16; ++z)
 			{
-				for(int y = 5; y < 110; ++y)
+				for(int y = 5; y < maxY; ++y)
 				{
 					Location loc = new Location(location.getWorld(), x, y, z);
 					double dist = loc.distanceSquared(location); 
@@ -150,127 +248,26 @@ public class PortalHelper
 			ns = !ns;
 		}
 		else
-			force = true;
-		
-		final Location fLocation = location;
-		final boolean fForce = force;
-		final boolean fNS = ns;
-		
-		Bukkit.getScheduler().runTaskLater(NetherReset.instance, new Runnable()
 		{
-			@Override
-			public void run()
-			{
-				if(fForce)
-				{
-					// Generate a void around the portal
-					for(int y = fLocation.getBlockY(); y <= fLocation.getBlockY() + 6; ++y)
-					{
-						if(fNS)
-						{
-							for(int x = fLocation.getBlockX() - 2; x <= fLocation.getBlockX() + 2; ++x)
-							{
-								for(int z = fLocation.getBlockZ() - 3; z <= fLocation.getBlockZ() + 4; ++z)
-								{
-									fLocation.getWorld().getBlockAt(x, y, z).setTypeId(0, false);
-								}
-							}
-						}
-						else
-						{
-							for(int x = fLocation.getBlockX() - 3; x <= fLocation.getBlockX() + 4; ++x)
-							{
-								for(int z = fLocation.getBlockZ() - 2; z <= fLocation.getBlockZ() + 2; ++z)
-								{
-									fLocation.getWorld().getBlockAt(x, y, z).setTypeId(0, false);
-								}
-							}
-						}
-					}
-					
-				}
-				
-				// Make the actual portal
-				if(fNS)
-				{
-					int c = 0;
-
-					// Build the frame first
-					boolean retry = true;
-					// Found a case where frame doesnt fully generate.
-					// Heres what i know:
-					// setTypeId works, completly in every case
-					// but it doesnt at the same time. I find that there are two instances of the chunk, one that setType uses, and one that getType uses.
-					// Somehow I dont think this is intensional, but that is how it is.
-					// For the ones that work, the instances are the same.
-
-					while(retry)
-					{
-						retry = false;
-						for(int z = fLocation.getBlockZ() - 2; z <= fLocation.getBlockZ() + 1; ++z)
-						{
-							for(int y = fLocation.getBlockY() - 1; y <= fLocation.getBlockY() + 3; ++y)
-							{
-								if(z == fLocation.getBlockZ() - 2 || z == fLocation.getBlockZ() + 1 || y == fLocation.getBlockY() - 1 || y == fLocation.getBlockY() + 3)
-								{
-									Block b = fLocation.getWorld().getBlockAt(fLocation.getBlockX(), y, z);
-									b.setType(Material.OBSIDIAN);
-									
-									if(b.getType() != Material.OBSIDIAN)
-										retry = true;
-									++c;
-								}
-							}
-						}
-					}
-					NetherReset.logger.info("blocks " + c);
-					
-					Block base = fLocation.getBlock().getRelative(BlockFace.DOWN);
-					
-					if(fForce)
-					{
-						base.getRelative(BlockFace.WEST).setType(Material.OBSIDIAN);
-						base.getRelative(BlockFace.EAST).setType(Material.OBSIDIAN);
-						base.getRelative(BlockFace.WEST).getRelative(BlockFace.NORTH).setType(Material.OBSIDIAN);
-						base.getRelative(BlockFace.EAST).getRelative(BlockFace.NORTH).setType(Material.OBSIDIAN);
-					}
-				}
-				else
-				{
-					boolean retry = true;
-					while(retry)
-					{
-						retry = false;
-						// Build the frame first
-						for(int x = fLocation.getBlockX() - 1; x <= fLocation.getBlockX() + 2; ++x)
-						{
-							for(int y = fLocation.getBlockY() - 1; y <= fLocation.getBlockY() + 3; ++y)
-							{
-								if(x == fLocation.getBlockX() - 1 || x == fLocation.getBlockX() + 2 || y == fLocation.getBlockY() - 1 || y == fLocation.getBlockY() + 3)
-								{
-									Block b = fLocation.getWorld().getBlockAt(x, y, fLocation.getBlockZ());
-									b.setType(Material.OBSIDIAN);
-									
-									if(b.getType() != Material.OBSIDIAN)
-										retry = true;
-								}
-							}
-						}
-					}
-					
-					Block base = fLocation.getBlock().getRelative(BlockFace.DOWN);
-					
-					if(fForce)
-					{
-						base.getRelative(BlockFace.SOUTH).setType(Material.OBSIDIAN);
-						base.getRelative(BlockFace.NORTH).setType(Material.OBSIDIAN);
-						base.getRelative(BlockFace.SOUTH).getRelative(BlockFace.EAST).setType(Material.OBSIDIAN);
-						base.getRelative(BlockFace.NORTH).getRelative(BlockFace.EAST).setType(Material.OBSIDIAN);
-					}
-				}
-			}
-		}, 2L);
+			force = true;
+			location.setY(Math.min(Math.max(location.getY(), 10), 100));
+		}
 		
+		if(force)
+			internalCreatePortal(location, ns, true);
+		else
+		{
+			final Location fLocation = location;
+			final boolean fNS = ns;
+			Bukkit.getScheduler().runTaskLater(NetherReset.instance, new Runnable()
+			{
+				@Override
+				public void run()
+				{
+					internalCreatePortal(fLocation, fNS, false);
+				}
+			}, 2L);
+		}
 		
 		return new Portal(location.getBlock(), ns);
 	}
