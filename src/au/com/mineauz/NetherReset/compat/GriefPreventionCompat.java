@@ -9,22 +9,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.world.PortalCreateEvent;
-
 import au.com.mineauz.NetherReset.PortalTravelEvent;
 
 public class GriefPreventionCompat implements Listener
 {
-	public GriefPreventionCompat()
-	{
-	}
-	
-	@EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
-	public void onPortalCreate(PortalCreateEvent event)
-	{
-		
-	}
-	
 	@EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
 	public void onPortalTravel(PortalTravelEvent event)
 	{

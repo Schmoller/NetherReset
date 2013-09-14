@@ -13,8 +13,10 @@ commands:
   resetNether:
     description: Resets the nether
     permission: resetNether.command
-  tpn:
     
 permissions:
   resetNether.command:
+    default: op
+  resetNether.no-portal-delay:
+    description: Allows a player to use portals without any wait time
     default: op

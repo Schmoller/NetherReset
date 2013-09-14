@@ -16,11 +16,12 @@ import org.bukkit.WorldType;
 import org.bukkit.block.BlockFace;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.InvalidConfigurationException;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityPortalEnterEvent;
 import org.bukkit.event.entity.EntityTeleportEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -62,7 +63,7 @@ public class NetherReset extends JavaPlugin implements Listener
 			return;
 		}
 		
-		createNewNether();
+		loadExistingNether();
 		
 		mPortals = new PortalManager();
 		try
@@ -91,6 +92,57 @@ public class NetherReset extends JavaPlugin implements Listener
 		world.type(WorldType.NORMAL);
 		
 		mNether = new WeakReference<World>(Bukkit.createWorld(world));
+		saveNetherInfo(world);
+	}
+	
+	private void loadExistingNether()
+	{
+		File file = new File("world_nether/level.yml");
+		if(!file.exists())
+		{
+			createNewNether();
+			return;
+		}
+		
+		YamlConfiguration config = new YamlConfiguration();
+		try
+		{
+			config.load(file);
+			WorldCreator world = new WorldCreator("world_nether");
+			world.environment(Environment.NETHER);
+			
+			world.generateStructures(config.getBoolean("structures"));
+			world.seed(config.getLong("seed"));
+			world.type(WorldType.valueOf(config.getString("type")));
+			
+			mNether = new WeakReference<World>(Bukkit.createWorld(world));
+		}
+		catch(IOException e)
+		{
+			e.printStackTrace();
+		}
+		catch(InvalidConfigurationException e)
+		{
+			getLogger().severe("Failed to load nether settings. Generating new settings. This may or may not cause chunk errors in the nether");
+			createNewNether();
+		}
+	}
+	
+	private void saveNetherInfo(WorldCreator worldInfo)
+	{
+		YamlConfiguration config = new YamlConfiguration();
+		config.options().header("WARNING! This file is auto generated. Do NOT under any circumstances change any values here.");
+		config.set("structures", worldInfo.generateStructures());
+		config.set("seed", worldInfo.seed());
+		config.set("type", worldInfo.type().name());
+		try
+		{
+			config.save(new File("world_nether/level.yml"));
+		}
+		catch(IOException e)
+		{
+			e.printStackTrace();
+		}
 	}
 	
 	@Override
@@ -104,22 +156,6 @@ public class NetherReset extends JavaPlugin implements Listener
 			beginNetherReset();
 			
 			return true;
-		}
-		else if(command.getName().equals("tpn"))
-		{
-			if(sender instanceof Player && !mNether.isEnqueued())
-			{
-				Player p = (Player)sender;
-				Portal test = new Portal(p.getLocation().getBlock());
-				PortalHelper.applyPortal(test);
-				
-//				HashSet<Byte> blocks = new HashSet<Byte>();
-//				blocks.add((byte)0);
-//				Block target = p.getTargetBlock(blocks, 20);
-//				target.setType(Material.PORTAL);
-//				((Player)sender).teleport(mNether.get().getSpawnLocation());
-			}
-				
 		}
 		
 		return false;
@@ -170,17 +206,6 @@ public class NetherReset extends JavaPlugin implements Listener
 			event.setCancelled(true);
 	}
 	
-	@EventHandler(priority=EventPriority.HIGHEST)
-	private void onEntityPortalEnter(EntityPortalEnterEvent event)
-	{
-//		logger.info("Portal event");
-//		if(event.getLocation().getWorld().equals(Bukkit.getWorlds().get(0)))
-//		{
-//			event.getEntity().teleport(mNether.get().getSpawnLocation());
-//		}
-	}
-	
-
 
 	void onNetherLoad()
 	{

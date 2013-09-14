@@ -2,18 +2,12 @@ package au.com.mineauz.NetherReset;
 
 import java.util.ArrayList;
 
-import net.minecraft.server.v1_6_R2.EntityItem;
-import net.minecraft.server.v1_6_R2.EntityMinecartAbstract;
-import net.minecraft.server.v1_6_R2.EntityPlayer;
-import net.minecraft.server.v1_6_R2.WorldServer;
-
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World.Environment;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.craftbukkit.v1_6_R2.CraftWorld;
 import org.bukkit.craftbukkit.v1_6_R2.entity.CraftEntity;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.world.PortalCreateEvent;
@@ -299,68 +293,5 @@ public class PortalHelper
 	public static boolean isCooldownComplete(Entity ent)
 	{
 		return ((CraftEntity)ent).getHandle().portalCooldown <= 0;
-	}
-	
-	public static boolean teleportEntity(Entity ent, Location dest)
-	{
-		return teleportEntity(((CraftEntity)ent).getHandle(), dest);
-	}
-	public static boolean teleportEntity(final net.minecraft.server.v1_6_R2.Entity entity, Location dest)
-	{
-		if(!dest.getChunk().load())
-			Bukkit.broadcastMessage("Didnt load");
-		
-		WorldServer newworld = ((CraftWorld)dest.getWorld()).getHandle();
-        if (entity.world != newworld && !(entity instanceof EntityPlayer)) 
-        {   
-            if (entity.passenger != null) 
-            {
-                final net.minecraft.server.v1_6_R2.Entity passenger = entity.passenger;
-                passenger.vehicle = null;
-                entity.passenger = null;
-                if (teleportEntity(passenger, dest)) 
-                {
-                    Bukkit.getScheduler().scheduleSyncDelayedTask(NetherReset.instance, new Runnable() 
-                    {
-                        public void run() 
-                        {
-                            passenger.setPassengerOf(entity);
-                        }
-                    });
-                }
-            }
-            
-            entity.world.removeEntity(entity);
-            entity.dead = false;
-            
-            boolean before = newworld.chunkProviderServer.forceChunkLoad;
-            newworld.chunkProviderServer.forceChunkLoad = true;
-            newworld.getMinecraftServer().getPlayerList().repositionEntity(entity, dest, false);
-            newworld.chunkProviderServer.forceChunkLoad = before;
- 
-            if(entity instanceof EntityItem)
-            {
-            	((EntityItem)entity).pickupDelay = 0;
-//            	Item copy = dest.getWorld().dropItem(dest, ((Item)entity.getBukkitEntity()).getItemStack());
-//            	copy.setVelocity(entity.getBukkitEntity().getVelocity());
-//            	entity.getBukkitEntity().remove();
-//            	net.minecraft.server.v1_6_R2.Entity copyEnt = ((CraftItem)copy).getHandle();
-//            	copyEnt.portalCooldown = entity.portalCooldown;
-            }
-            if(entity instanceof EntityMinecartAbstract)
-            	dest.add(0, 1, 0);
-//            ((WorldServer)entity.world).tracker.untrackEntity(entity);
-//            entity.world.removeEntity(entity);
-//            entity.dead = false;
-//            entity.world = newworld;
-//            entity.setLocation(dest.getX(), dest.getY(), dest.getZ(), dest.getYaw(), dest.getPitch());
-//            
-//            entity.world.addEntity(entity);
-            
-            //((WorldServer)entity.world).tracker.track(entity);
-            return true;
-        } 
-        else 
-            return entity.getBukkitEntity().teleport(dest);           
 	}
 }

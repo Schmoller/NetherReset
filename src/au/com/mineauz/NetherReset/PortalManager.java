@@ -14,20 +14,13 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Entity;
-import au.com.mineauz.NetherReset.utilities.AgeingMap;
 
 public class PortalManager
 {
 	private HashMap<Block, Portal> mPortals = new HashMap<Block, Portal>();
-	private AgeingMap<Entity, Portal> mPortalBlackList;
 	
 	private File mFile;
-	
-	public PortalManager()
-	{
-		mPortalBlackList = new AgeingMap<Entity, Portal>(1000);
-	}
-	
+
 	public void initialize(File file) throws IOException
 	{
 		mFile = file;
@@ -124,12 +117,6 @@ public class PortalManager
 		save();
 	}
 	
-	public boolean canUsePortal(Entity entity, Portal portal)
-	{
-		Portal blacklisted = mPortalBlackList.get(entity);
-		return blacklisted != portal;
-	}
-	
 	/**
 	 * Force uses a portal, check with canUsePortal if you want to know
 	 */
@@ -146,6 +133,8 @@ public class PortalManager
 		if(event.isCancelled())
 			return false;
 		
+		final Location loc = other.getSpawnLocation(entity.getLocation(), portal);
+		
 		Bukkit.getScheduler().runTaskLater(NetherReset.instance, new Runnable()
 		{
 			@Override
@@ -153,28 +142,20 @@ public class PortalManager
 			{
 				PortalHelper.applyPortal(other);
 			}
-		}, 2L);
+		}, 4L);
 		
-		// TODO: This is only needed when forcing portals
-//		Bukkit.getScheduler().runTaskLater(NetherReset.instance, new Runnable()
-//		{
-//			@Override
-//			public void run()
-//			{
-//				Location loc = other.getSpawnLocation(entity.getLocation(), portal);
-//				PortalHelper.teleportEntity(entity, loc);
-//				mPortalBlackList.put(entity, portal);
-//			}
-//		}, 3L);
+		Bukkit.getScheduler().runTaskLater(NetherReset.instance, new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				entity.teleport(loc);
+			}
+		}, 3L);
 		
-		Location loc = other.getSpawnLocation(entity.getLocation(), portal);
-		if(!PortalHelper.teleportEntity(entity, loc))
-			NetherReset.logger.info("Failed to tp");
-		
+		entity.teleport(loc);
 		PortalHelper.setDefaultCooldown(event.getEntity());
-		
-		mPortalBlackList.put(entity, portal);
-		
+
 		return true;
 	}
 	
@@ -182,10 +163,5 @@ public class PortalManager
 	{
 		mPortals.clear();
 		save();
-	}
-
-	public void blacklistPortal( Portal portal, Entity entity )
-	{
-		mPortalBlackList.put(entity, portal);
 	}
 }
