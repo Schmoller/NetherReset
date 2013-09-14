@@ -1,5 +1,6 @@
 package au.com.mineauz.NetherReset;
 
+import org.apache.commons.lang.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -68,6 +69,11 @@ public class Portal
 						if(mBaseBlock.getWorld().getBlockAt(mBaseBlock.getX(), y, z).getType() != Material.OBSIDIAN)
 							return false;
 					}
+					else if((z != mBaseBlock.getZ() - 2) && (z != mBaseBlock.getZ() + 1) && (y != mBaseBlock.getY() - 1) && (y != mBaseBlock.getY() + 3))
+					{
+						if(!mBaseBlock.getWorld().getBlockAt(mBaseBlock.getX(), y, z).isEmpty() && mBaseBlock.getWorld().getBlockAt(mBaseBlock.getX(), y, z).getType() != Material.PORTAL && !mBaseBlock.getWorld().getBlockAt(mBaseBlock.getX(), y, z).isLiquid())
+							return false;
+					}
 				}
 			}
 		}
@@ -80,6 +86,11 @@ public class Portal
 					if((x == mBaseBlock.getX() - 1) ^ (x == mBaseBlock.getX() + 2) ^ (y == mBaseBlock.getY() - 1) ^ (y == mBaseBlock.getY() + 3))
 					{
 						if(mBaseBlock.getWorld().getBlockAt(x, y, mBaseBlock.getZ()).getType() != Material.OBSIDIAN)
+							return false;
+					}
+					else if((x != mBaseBlock.getX() - 1) && (x != mBaseBlock.getX() + 2) && (y != mBaseBlock.getY() - 1) && (y != mBaseBlock.getY() + 3))
+					{
+						if(!mBaseBlock.getWorld().getBlockAt(x, y, mBaseBlock.getZ()).isEmpty() && mBaseBlock.getWorld().getBlockAt(x, y, mBaseBlock.getZ()).getType() != Material.PORTAL && !mBaseBlock.getWorld().getBlockAt(x, y, mBaseBlock.getZ()).isLiquid())
 							return false;
 					}
 				}
@@ -95,9 +106,8 @@ public class Portal
 			return mLinked;
 
 		if(mLinked != null)
-			NetherReset.logger.info("Frame does not exist: " + mLinked);
-		else
-			NetherReset.logger.info("No linked portal");
+			NetherReset.getPortalManager().removePortal(mLinked);
+
 		Location coords;
 		
 		if(mBaseBlock.getWorld().equals(NetherReset.getNether()))
@@ -106,6 +116,9 @@ public class Portal
 			coords = new Location(NetherReset.getNether(), mBaseBlock.getX() / 8, mBaseBlock.getY(), mBaseBlock.getZ() / 8);
 		
 		mLinked = PortalHelper.createPortal(coords, mNorthSouth);
+		if(mLinked == null)
+			return null;
+		
 		mLinked.setLinkedPortal(this);
 		
 		NetherReset.getPortalManager().registerPortal(mLinked);
@@ -118,9 +131,36 @@ public class Portal
 		mLinked = portal;
 	}
 	
+	public Location getRelativeLocation(Location loc)
+	{
+		Validate.isTrue(loc.getWorld().equals(mBaseBlock.getWorld()));
+		
+		return loc.clone().subtract(mBaseBlock.getLocation());
+	}
+	
+	public Location getSpawnLocation(Location source, Portal sourcePortal)
+	{
+		Location loc;
+		if(sourcePortal.mNorthSouth == mNorthSouth)
+			loc = mBaseBlock.getLocation().add(sourcePortal.getRelativeLocation(source).toVector());
+		else
+		{
+			Location rel = sourcePortal.getRelativeLocation(source);
+			if(sourcePortal.mNorthSouth)
+				loc = mBaseBlock.getLocation().add(rel.getZ(), rel.getY(), 0);
+			else
+				loc = mBaseBlock.getLocation().add(0, rel.getY(), rel.getX());
+		}
+
+		loc.setYaw(source.getYaw());
+		loc.setPitch(source.getPitch());
+		
+		return loc;
+	}
+	
 	public Location getSpawnLocation(Location source)
 	{
-		Location loc = mBaseBlock.getLocation().add((!mNorthSouth ? 1 : 0.5), 0, (!mNorthSouth ? 0.5 : 0));
+		Location loc = mBaseBlock.getLocation().add((!mNorthSouth ? 1 : 0.5), 0.2, (!mNorthSouth ? 0.5 : 0));
 		loc.setYaw(source.getYaw());
 		loc.setPitch(source.getPitch());
 		

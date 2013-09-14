@@ -24,6 +24,8 @@ import org.bukkit.event.entity.EntityPortalEnterEvent;
 import org.bukkit.event.entity.EntityTeleportEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import au.com.mineauz.NetherReset.compat.GriefPreventionCompat;
+
 public class NetherReset extends JavaPlugin implements Listener
 {
 	private boolean mNetherLockout = false;
@@ -76,7 +78,8 @@ public class NetherReset extends JavaPlugin implements Listener
 		Bukkit.getPluginManager().registerEvents(this, this);
 		Bukkit.getPluginManager().registerEvents(new PortalListener(), this);
 		
-		
+		if(Bukkit.getPluginManager().isPluginEnabled("GriefPrevention"))
+			Bukkit.getPluginManager().registerEvents(new GriefPreventionCompat(), this);
 	}
 	
 	void createNewNether()

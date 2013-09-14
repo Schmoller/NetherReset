@@ -14,7 +14,6 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Entity;
-
 import au.com.mineauz.NetherReset.utilities.AgeingMap;
 
 public class PortalManager
@@ -58,8 +57,6 @@ public class PortalManager
 				
 				if(section.contains("linked"))
 					links.put(portal, Portal.getLocationFromString(section.getString("linked")));
-				
-				NetherReset.logger.info(portal.toString());
 			}
 			
 			// Apply links
@@ -67,14 +64,14 @@ public class PortalManager
 			{
 				Portal other = mPortals.get(link.getValue().getBlock());
 				link.getKey().setLinkedPortal(other);
-				
-				NetherReset.logger.info("Linked " + link.getKey().getLocationString() + " to " + other.getLocationString());
 			}
 		}
 		catch ( Exception e )
 		{
 			e.printStackTrace();
 		}
+		
+		NetherReset.logger.info(String.format("Loaded %d Portals", mPortals.size()));
 	}
 	
 	public void save()
@@ -136,9 +133,18 @@ public class PortalManager
 	/**
 	 * Force uses a portal, check with canUsePortal if you want to know
 	 */
-	public void usePortal(final Entity entity, final Portal portal)
+	public boolean usePortal(final Entity entity, final Portal portal)
 	{
 		final Portal other = portal.getOrSpawnLinkedPortal();
+		
+		if(other == null)
+			return false;
+		
+		PortalTravelEvent event = new PortalTravelEvent(portal, other, entity);
+		Bukkit.getPluginManager().callEvent(event);
+		
+		if(event.isCancelled())
+			return false;
 		
 		Bukkit.getScheduler().runTaskLater(NetherReset.instance, new Runnable()
 		{
@@ -149,27 +155,37 @@ public class PortalManager
 			}
 		}, 2L);
 		
-		Bukkit.getScheduler().runTaskLater(NetherReset.instance, new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				Location loc = other.getSpawnLocation(entity.getLocation());
-				entity.teleport(loc);
-				
-				mPortalBlackList.put(entity, portal);
-			}
-		}, 3L);
+		// TODO: This is only needed when forcing portals
+//		Bukkit.getScheduler().runTaskLater(NetherReset.instance, new Runnable()
+//		{
+//			@Override
+//			public void run()
+//			{
+//				Location loc = other.getSpawnLocation(entity.getLocation(), portal);
+//				PortalHelper.teleportEntity(entity, loc);
+//				mPortalBlackList.put(entity, portal);
+//			}
+//		}, 3L);
 		
-		Location loc = other.getSpawnLocation(entity.getLocation());
-		entity.teleport(loc);
+		Location loc = other.getSpawnLocation(entity.getLocation(), portal);
+		if(!PortalHelper.teleportEntity(entity, loc))
+			NetherReset.logger.info("Failed to tp");
+		
+		PortalHelper.setDefaultCooldown(event.getEntity());
 		
 		mPortalBlackList.put(entity, portal);
+		
+		return true;
 	}
 	
 	public void clearPortals()
 	{
 		mPortals.clear();
 		save();
+	}
+
+	public void blacklistPortal( Portal portal, Entity entity )
+	{
+		mPortalBlackList.put(entity, portal);
 	}
 }

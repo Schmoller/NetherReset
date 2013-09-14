@@ -7,6 +7,8 @@ main: au.com.mineauz.NetherReset.NetherReset
 
 load: postworld
 
+softdepend: [GriefPrevention]
+
 commands:
   resetNether:
     description: Resets the nether

@@ -1,11 +1,23 @@
 package au.com.mineauz.NetherReset;
 
+import java.util.ArrayList;
+
+import net.minecraft.server.v1_6_R2.EntityItem;
+import net.minecraft.server.v1_6_R2.EntityMinecartAbstract;
+import net.minecraft.server.v1_6_R2.EntityPlayer;
+import net.minecraft.server.v1_6_R2.WorldServer;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World.Environment;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.craftbukkit.v1_6_R2.CraftWorld;
+import org.bukkit.craftbukkit.v1_6_R2.entity.CraftEntity;
+import org.bukkit.entity.Entity;
+import org.bukkit.event.world.PortalCreateEvent;
+import org.bukkit.event.world.PortalCreateEvent.CreateReason;
 
 public class PortalHelper
 {
@@ -137,8 +149,6 @@ public class PortalHelper
 		// Make the actual portal
 		if(ns)
 		{
-			int c = 0;
-
 			// Build the frame first
 			// Found a case where frame doesnt fully generate.
 			// Heres what i know:
@@ -155,12 +165,10 @@ public class PortalHelper
 					{
 						Block b = location.getWorld().getBlockAt(location.getBlockX(), y, z);
 						b.setType(Material.OBSIDIAN);
-						++c;
 					}
 				}
 			}
-			NetherReset.logger.info("blocks " + c);
-			
+
 			Block base = location.getBlock().getRelative(BlockFace.DOWN);
 			
 			setIfNotSolid(base.getRelative(BlockFace.WEST),Material.OBSIDIAN);
@@ -194,11 +202,6 @@ public class PortalHelper
 	
 	public static Portal createPortal(Location location, boolean ns)
 	{
-		// Find an empty position to put it.
-		// Requirements: The actual portal part must be clear of blocks, as must the space in front and behind the actual portal part
-		// If this is not met, try going up. NOTE: must not go up above 100 but only go up to 30 above the target position
-		// If going up didnt succeede, try offsetting the location 
-		
 		Location best = null;
 		double bestDist = Double.MAX_VALUE;
 		Location bestAnti = null;
@@ -253,6 +256,18 @@ public class PortalHelper
 			location.setY(Math.min(Math.max(location.getY(), 10), 100));
 		}
 		
+		ArrayList<Block> blocks = new ArrayList<Block>();
+		for(int i = 0; i < 2; ++i)
+		{
+			for(int j = 0; j < 3; ++j)
+				blocks.add(location.getBlock().getRelative(ns ? 0 : i, j, ns ? i : 0));
+		}
+		
+		PortalCreateEvent event = new PortalCreateEvent(blocks, location.getWorld(), CreateReason.OBC_DESTINATION);
+		Bukkit.getPluginManager().callEvent(event);
+		if(event.isCancelled())
+			return null;
+		
 		if(force)
 			internalCreatePortal(location, ns, true);
 		else
@@ -270,5 +285,82 @@ public class PortalHelper
 		}
 		
 		return new Portal(location.getBlock(), ns);
+	}
+	
+	public static void setDefaultCooldown(Entity ent)
+	{
+		((CraftEntity)ent).getHandle().portalCooldown = ((CraftEntity)ent).getHandle().ab();
+	}
+	public static void setCooldown(Entity ent, int time)
+	{
+		((CraftEntity)ent).getHandle().portalCooldown = time;
+	}
+	
+	public static boolean isCooldownComplete(Entity ent)
+	{
+		return ((CraftEntity)ent).getHandle().portalCooldown <= 0;
+	}
+	
+	public static boolean teleportEntity(Entity ent, Location dest)
+	{
+		return teleportEntity(((CraftEntity)ent).getHandle(), dest);
+	}
+	public static boolean teleportEntity(final net.minecraft.server.v1_6_R2.Entity entity, Location dest)
+	{
+		if(!dest.getChunk().load())
+			Bukkit.broadcastMessage("Didnt load");
+		
+		WorldServer newworld = ((CraftWorld)dest.getWorld()).getHandle();
+        if (entity.world != newworld && !(entity instanceof EntityPlayer)) 
+        {   
+            if (entity.passenger != null) 
+            {
+                final net.minecraft.server.v1_6_R2.Entity passenger = entity.passenger;
+                passenger.vehicle = null;
+                entity.passenger = null;
+                if (teleportEntity(passenger, dest)) 
+                {
+                    Bukkit.getScheduler().scheduleSyncDelayedTask(NetherReset.instance, new Runnable() 
+                    {
+                        public void run() 
+                        {
+                            passenger.setPassengerOf(entity);
+                        }
+                    });
+                }
+            }
+            
+            entity.world.removeEntity(entity);
+            entity.dead = false;
+            
+            boolean before = newworld.chunkProviderServer.forceChunkLoad;
+            newworld.chunkProviderServer.forceChunkLoad = true;
+            newworld.getMinecraftServer().getPlayerList().repositionEntity(entity, dest, false);
+            newworld.chunkProviderServer.forceChunkLoad = before;
+ 
+            if(entity instanceof EntityItem)
+            {
+            	((EntityItem)entity).pickupDelay = 0;
+//            	Item copy = dest.getWorld().dropItem(dest, ((Item)entity.getBukkitEntity()).getItemStack());
+//            	copy.setVelocity(entity.getBukkitEntity().getVelocity());
+//            	entity.getBukkitEntity().remove();
+//            	net.minecraft.server.v1_6_R2.Entity copyEnt = ((CraftItem)copy).getHandle();
+//            	copyEnt.portalCooldown = entity.portalCooldown;
+            }
+            if(entity instanceof EntityMinecartAbstract)
+            	dest.add(0, 1, 0);
+//            ((WorldServer)entity.world).tracker.untrackEntity(entity);
+//            entity.world.removeEntity(entity);
+//            entity.dead = false;
+//            entity.world = newworld;
+//            entity.setLocation(dest.getX(), dest.getY(), dest.getZ(), dest.getYaw(), dest.getPitch());
+//            
+//            entity.world.addEntity(entity);
+            
+            //((WorldServer)entity.world).tracker.track(entity);
+            return true;
+        } 
+        else 
+            return entity.getBukkitEntity().teleport(dest);           
 	}
 }
