@@ -166,13 +166,7 @@ public class NetherReset extends JavaPlugin implements Listener
 	{
 		mNetherLockout = true;
 		
-		Bukkit.broadcastMessage(ChatColor.DARK_PURPLE +"=====================================================");
-		Bukkit.broadcastMessage("");
-		Bukkit.broadcastMessage(ChatColor.YELLOW +     "                       WARNING                       ");
-		Bukkit.broadcastMessage("");
-		Bukkit.broadcastMessage(ChatColor.YELLOW +     "          The nether is being regenerated.");
-		Bukkit.broadcastMessage("");
-		Bukkit.broadcastMessage(ChatColor.DARK_PURPLE +"=====================================================");
+		Bukkit.broadcastMessage(ChatColor.RED +     "[ATTENTION] " + ChatColor.YELLOW + "The nether is being reset! Expect a severe lag spike for a few seconds.");
 		
 		World nether = Bukkit.getWorld("world_nether");
 		
@@ -212,7 +206,7 @@ public class NetherReset extends JavaPlugin implements Listener
 		if(mNetherLockout)
 		{
 			mNetherLockout = false;
-			Bukkit.broadcastMessage(ChatColor.RED + "[Nether Reset] " + ChatColor.WHITE + "Nether regeneration is complete. Access to the nether is available again.");
+			Bukkit.broadcastMessage(ChatColor.RED + "[ATTENTION] " + ChatColor.WHITE + "Nether regeneration is complete. Access to the nether is available again.");
 		}
 	}
 	

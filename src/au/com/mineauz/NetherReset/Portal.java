@@ -135,7 +135,13 @@ public class Portal
 	{
 		Validate.isTrue(loc.getWorld().equals(mBaseBlock.getWorld()));
 		
-		return loc.clone().subtract(mBaseBlock.getLocation());
+		loc = loc.clone().subtract(mBaseBlock.getLocation());
+		if(mNorthSouth)
+			loc.setX(0);
+		else
+			loc.setZ(0);
+		
+		return loc;
 	}
 	
 	public Location getSpawnLocation(Location source, Portal sourcePortal)
@@ -151,6 +157,9 @@ public class Portal
 			else
 				loc = mBaseBlock.getLocation().add(0, rel.getY(), rel.getX());
 		}
+		
+		if(loc.getY() < mBaseBlock.getY() + 0.3)
+			loc.setY(mBaseBlock.getY() + 0.3);
 
 		loc.setYaw(source.getYaw());
 		loc.setPitch(source.getPitch());
