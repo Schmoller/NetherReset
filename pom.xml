@@ -20,6 +20,12 @@
       </snapshots>
     </repository>
     
+    <!-- Addstar repo -->
+    <repository>
+      <id>addstar-repo</id>
+      <url>http://maven.addstar.com.au/artifactory/ext-release-local</url>
+    </repository>
+    
     <!-- Other repositories -->
     <repository>
       <id>maven-central</id>
