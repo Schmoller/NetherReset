@@ -10,4 +10,7 @@ public class Config extends AutoConfig
 
 		
 	}
+	
+	@ConfigField(comment="The world to use. Leave blank for auto detect", category="general")
+	public String world = "";
 }

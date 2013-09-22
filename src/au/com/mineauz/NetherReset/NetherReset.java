@@ -38,6 +38,16 @@ public class NetherReset extends JavaPlugin implements Listener
 	
 	private PortalManager mPortals;
 	
+	private Config mConfig;
+	
+	public String getWorldName()
+	{
+		if(mConfig.world.isEmpty())
+			return Bukkit.getWorlds().get(0).getName() + "_nether";
+		else
+			return mConfig.world;
+	}
+	
 	public static PortalManager getPortalManager()
 	{
 		return instance.mPortals;
@@ -60,6 +70,16 @@ public class NetherReset extends JavaPlugin implements Listener
 		{
 			getLogger().severe("Nether world needs to be disabled for this plugin to work");
 			instance = null;
+			setEnabled(false);
+			return;
+		}
+		
+		mConfig = new Config(new File(getDataFolder(), "config.yml"));
+		if(!mConfig.load())
+		{
+			getLogger().severe("Error in configuration file. Cannot load NetherReset");
+			instance = null;
+			setEnabled(false);
 			return;
 		}
 		
@@ -85,7 +105,7 @@ public class NetherReset extends JavaPlugin implements Listener
 	
 	void createNewNether()
 	{
-		WorldCreator world = new WorldCreator("world_nether");
+		WorldCreator world = new WorldCreator(getWorldName());
 		world.seed(new Random().nextLong());
 		world.environment(Environment.NETHER);
 		world.generateStructures(true);
@@ -97,7 +117,7 @@ public class NetherReset extends JavaPlugin implements Listener
 	
 	private void loadExistingNether()
 	{
-		File file = new File("world_nether/level.yml");
+		File file = new File(getWorldName() + "/level.yml");
 		if(!file.exists())
 		{
 			createNewNether();
@@ -108,7 +128,7 @@ public class NetherReset extends JavaPlugin implements Listener
 		try
 		{
 			config.load(file);
-			WorldCreator world = new WorldCreator("world_nether");
+			WorldCreator world = new WorldCreator(getWorldName());
 			world.environment(Environment.NETHER);
 			
 			world.generateStructures(config.getBoolean("structures"));
@@ -137,7 +157,7 @@ public class NetherReset extends JavaPlugin implements Listener
 		config.set("type", worldInfo.type().name());
 		try
 		{
-			config.save(new File("world_nether/level.yml"));
+			config.save(new File(getWorldName() + "/level.yml"));
 		}
 		catch(IOException e)
 		{
@@ -168,7 +188,7 @@ public class NetherReset extends JavaPlugin implements Listener
 		
 		Bukkit.broadcastMessage(ChatColor.RED +     "[ATTENTION] " + ChatColor.YELLOW + "The nether is being reset! Expect a severe lag spike for a few seconds.");
 		
-		World nether = Bukkit.getWorld("world_nether");
+		World nether = Bukkit.getWorld(getWorldName());
 		
 		// Get the safe spawn point
 		Location spawnPoint = Bukkit.getWorlds().get(0).getSpawnLocation().clone();
@@ -196,7 +216,7 @@ public class NetherReset extends JavaPlugin implements Listener
 	@EventHandler(priority=EventPriority.HIGHEST, ignoreCancelled = true)
 	private void onPlayerTeleport(EntityTeleportEvent event)
 	{
-		if(mNetherLockout && event.getTo().getWorld().getName().equals("world_nether"))
+		if(mNetherLockout && event.getTo().getWorld().getName().equals(getWorldName()))
 			event.setCancelled(true);
 	}
 	
